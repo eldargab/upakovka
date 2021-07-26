@@ -1,8 +1,11 @@
 # upakovka
 
-With `upakovka(1)` you manage your nodejs monorepo project as a single large npm package. You have single `package.json`, 
+With `upakovka(1)` you manage your nodejs monorepo project as a single large npm package.
+
+You have single `package.json` and 
 relative  imports between internal modules - a simple structure which every developer and tool understands. 
-For deployment or publishing you split your codebase into individual packages and that's when `upakovka(1)` comes in.
+
+For deployment or publishing you split your codebase into individual packages.
 
 ## Usage
 
@@ -46,6 +49,7 @@ for each external dependency it creates an entry in `.dependencies` of `package.
 This is an alpha quality software. Below is a list of issues we hope to fix soon:
 
 * There is no support for `package-lock.json`.
+* Supports only commonjs modules and ES2018 version of JavaScript
 * Although `.d.ts` files corresponding to `.js` modules will be included automatically, 
   pure `.d.ts` declarations will be omitted. You have to list those manually under `.files`.
 * There is no support for code splitting scenarios where you want to put each file into exactly one package.
