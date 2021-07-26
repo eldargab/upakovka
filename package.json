@@ -1,11 +1,16 @@
 {
     "name": "upakovka",
     "version": "0.0.0",
+    "description": "The best tool for monorepo",
     "author": {
         "name": "Eldar Gabdullin",
         "email": "eldargab@gmail.com"
     },
     "license": "MIT",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/eldargab/upakovka.git"
+    },
     "bin": {
         "upakovka": "bin/upakovka"
     },
