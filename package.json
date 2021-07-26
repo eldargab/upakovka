@@ -11,7 +11,8 @@
     },
     "dependencies": {
         "detective": "^5.2.0",
-        "is-builtin-module": "^3.1.0"
+        "is-builtin-module": "^3.1.0",
+        "sort-package-json": "^1.50.0"
     },
     "devDependencies": {
         "@types/detective": "^5.1.2",

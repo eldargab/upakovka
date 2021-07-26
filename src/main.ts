@@ -1,8 +1,9 @@
 import * as PATH from "path"
 import * as detective from "detective"
 import type {PackageJson} from "type-fest"
-import {BuildError, copy, deleteFiles, normalize, read, readJson, sortKeys, write} from "./util"
+import {BuildError, copy, deleteFiles, normalize, read, readJson, stat, write} from "./util"
 import isBuiltInModule = require("is-builtin-module")
+import sortPackageJson = require("sort-package-json")
 
 
 export type PackageFile = string | {name: string, src: string}
@@ -55,7 +56,12 @@ export function build(ctx: Ctx, pkg: Package): Build {
             file = normalize(file)
             if (seen.has(file)) return
             seen.add(file)
+
             out.files.push(file)
+            for (let f of relatedFiles(file)) {
+                out.files.push(f)
+            }
+
             let code = read(file)
             detective(code).forEach(dep => {
                 if (dep[0] == '.') {
@@ -87,11 +93,24 @@ export function build(ctx: Ctx, pkg: Package): Build {
         }
     })
 
-    // make content more stable, e.g. for better docker caching
-    out.packageJson = sortKeys(out.packageJson)
-    out.packageJson.dependencies = sortKeys(out.packageJson.dependencies)
+    // make content prettier and more stable, e.g. for better docker caching
+    out.packageJson = sortPackageJson(out.packageJson)
 
     return out
+}
+
+
+function *relatedFiles(file: string): Generator<string> {
+    if (!file.endsWith('.js')) return
+    let basename = file.slice(0, -'.js'.length)
+    let js_map = basename + '.js.map'
+    if (stat(js_map)) {
+        yield js_map
+    }
+    let d_ts = basename + '.d.ts'
+    if (stat(d_ts)) {
+        yield d_ts
+    }
 }
 
 
