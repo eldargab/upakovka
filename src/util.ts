@@ -1,5 +1,6 @@
 import * as fs from "fs"
 import * as PATH from "path"
+import assert = require("assert")
 
 
 export function read(file: string): string {
@@ -87,6 +88,16 @@ export function readJson<T=any>(file: string): T {
     } catch(e) {
         throw new BuildError(`file ${file} has a syntax error`)
     }
+}
+
+
+export function sortKeys<T extends object>(src: T): T {
+    assert(Object.getPrototypeOf(src) === Object.prototype, 'only plain js objects are supported by sortKeys()')
+    let sorted: any = {}
+    Object.keys(src).sort().forEach(key => {
+        sorted[key] = (src as any)[key]
+    })
+    return sorted
 }
 
 

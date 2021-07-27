@@ -1,9 +1,8 @@
 import * as PATH from "path"
 import * as detective from "detective"
 import type {PackageJson} from "type-fest"
-import {BuildError, copy, deleteFiles, normalize, read, readJson, stat, write} from "./util"
+import {BuildError, copy, deleteFiles, normalize, read, readJson, sortKeys, stat, write} from "./util"
 import isBuiltInModule = require("is-builtin-module")
-import sortPackageJson = require("sort-package-json")
 
 
 export type PackageFile = string | {name: string, src: string}
@@ -111,6 +110,25 @@ function *relatedFiles(file: string): Generator<string> {
     if (stat(d_ts)) {
         yield d_ts
     }
+}
+
+
+function sortPackageJson<T extends PackageJson>(src: T): T {
+    let sorted: T = {
+        name: src.name,
+        version: src.version,
+        private: src.private,
+        description: src.description,
+        keywords: src.keywords,
+        repository: src.repository,
+        license: src.license,
+        author: src.author,
+        ...src
+    }
+    if (src.dependencies) {
+        sorted.dependencies = sortKeys(src.dependencies)
+    }
+    return sorted
 }
 
 
