@@ -15,7 +15,9 @@
         "upakovka": "bin/upakovka"
     },
     "dependencies": {
+        "@types/glob": "^7.1.4",
         "detective": "^5.2.0",
+        "glob": "^7.1.7",
         "is-builtin-module": "^3.1.0"
     },
     "devDependencies": {

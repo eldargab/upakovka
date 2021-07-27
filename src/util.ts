@@ -48,11 +48,20 @@ export function write(dest: string, content: string): void {
 
 
 export function normalize(file: string, outOfPackageError?: string): string {
-    file = PATH.normalize(file)
+    file = PATH.relative('.', file)
     if (file.startsWith('..')) {
         throw new BuildError(outOfPackageError || `encountered a file which does not belong to the project: ${file}`)
     }
     return file
+}
+
+
+export function resolve(module: string): string {
+    let s = stat(module)
+    if (s?.isFile()) return module
+    if (s?.isDirectory()) return PATH.join(module, 'index.js')
+    if (s != null) throw new UnknownFileSystemItem(module)
+    return module + '.js'
 }
 
 
@@ -77,7 +86,14 @@ export function deleteFiles(e: string, preserve: Set<string>): boolean {
             return true
         }
     }
-    throw new BuildError(`${e} is not a file or directory`)
+    throw new UnknownFileSystemItem(e)
+}
+
+
+class UnknownFileSystemItem extends Error {
+    constructor(name: string) {
+        super(`${name} is not a regular file or directory`);
+    }
 }
 
 

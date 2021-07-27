@@ -1,8 +1,9 @@
 import * as PATH from "path"
 import * as detective from "detective"
 import type {PackageJson} from "type-fest"
-import {BuildError, copy, deleteFiles, normalize, read, readJson, sortKeys, stat, write} from "./util"
+import {BuildError, copy, deleteFiles, normalize, read, readJson, resolve, sortKeys, stat, write} from "./util"
 import isBuiltInModule = require("is-builtin-module")
+import {sync as glob} from "glob"
 
 
 export type PackageFile = string | {name: string, src: string}
@@ -44,6 +45,11 @@ export function build(ctx: Ctx, pkg: Package): Build {
             ...pkg.package_json,
             name: pkg.name,
             version: pkg.package_json?.version || ctx.rootPackageJson.version,
+            license: pkg.package_json?.license || ctx.rootPackageJson.license,
+            author: pkg.package_json?.author || ctx.rootPackageJson.author,
+            homepage: pkg.package_json?.homepage || ctx.rootPackageJson.homepage,
+            repository: pkg.package_json?.repository || ctx.rootPackageJson.repository,
+            bugs: pkg.package_json?.bugs || ctx.rootPackageJson.bugs,
             dependencies: {}
         }
     }
@@ -51,28 +57,29 @@ export function build(ctx: Ctx, pkg: Package): Build {
     // traverse js files
     {
         let seen = new Set<string>()
-        pkg.js.forEach(function visit(file: string) {
+
+        function visit(file: string) {
             file = normalize(file)
             if (seen.has(file)) return
             seen.add(file)
+
+            let code = read(file)
 
             out.files.push(file)
             for (let f of relatedFiles(file)) {
                 out.files.push(f)
             }
 
-            let code = read(file)
             detective(code).forEach(dep => {
                 if (dep[0] == '.') {
                     // it is a file
-                    let ext = PATH.extname(dep)
-                    if (ext != '.js' && ext != '.json') {
-                        dep += '.js'
-                    }
                     dep = PATH.join(PATH.dirname(file), dep)
+                    dep = resolve(dep)
                     visit(dep)
                 } else if (!isBuiltInModule(dep)) {
                     // it is a npm package
+                    let parts = dep.split('/')
+                    dep = parts[0].startsWith('@') ? parts[0] + '/' + parts[1] : parts[0]
                     let version = ctx.rootPackageJson.dependencies?.[dep]
                     if (version == null) {
                         throw new BuildError(`package ${dep} which is required by ${file} is not specified as a dependency in package.json`)
@@ -80,15 +87,24 @@ export function build(ctx: Ctx, pkg: Package): Build {
                     out.packageJson.dependencies[dep] = version
                 }
             })
+        }
+
+        pkg.js.forEach(f => {
+            glob(f).forEach(visit)
         })
     }
 
     // add non-js files
     pkg.files?.forEach(f => {
-        let {name, src} = typeof f == 'string' ? {name: f, src: f} : f
-        return {
-            name: normalize(name, `file ${name} is outside of package`),
-            src: normalize(src)
+        if (typeof f == 'string') {
+            glob(f).forEach(item => {
+                out.files.push(normalize(item, `attempt to save a file outside of package: ${item}`))
+            })
+        } else {
+            out.files.push({
+                name: normalize(f.name, `attempt to save a file outside of package: ${f.name}`),
+                src: f.src
+            })
         }
     })
 
@@ -120,9 +136,11 @@ function sortPackageJson<T extends PackageJson>(src: T): T {
         private: src.private,
         description: src.description,
         keywords: src.keywords,
-        repository: src.repository,
         license: src.license,
         author: src.author,
+        homepage: src.homepage,
+        repository: src.repository,
+        bugs: src.bugs,
         ...src
     }
     if (src.dependencies) {
