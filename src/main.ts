@@ -13,6 +13,7 @@ export interface Package {
     name: string
     js: string[]
     files?: PackageFile[]
+    deps?: string[]
     package_json?: Partial<PackageJson>
 }
 
@@ -54,6 +55,18 @@ export function build(ctx: Ctx, pkg: Package): Build {
         }
     }
 
+    function registerNpmPackage(name: string, explanation: string): void {
+        let version = ctx.rootPackageJson.dependencies?.[name]
+        if (version == null) {
+            throw new BuildError(`package ${name} which is ${explanation} is not present in package.json`)
+        }
+        out.packageJson.dependencies[name] = version
+    }
+
+    pkg.deps?.forEach(dep => {
+        registerNpmPackage(dep, `specified as a dependency of ${pkg.name}`)
+    })
+
     // traverse js files
     {
         let seen = new Set<string>()
@@ -80,11 +93,7 @@ export function build(ctx: Ctx, pkg: Package): Build {
                     // it is a npm package
                     let parts = dep.split('/')
                     dep = parts[0].startsWith('@') ? parts[0] + '/' + parts[1] : parts[0]
-                    let version = ctx.rootPackageJson.dependencies?.[dep]
-                    if (version == null) {
-                        throw new BuildError(`package ${dep} which is required by ${file} is not specified as a dependency in package.json`)
-                    }
-                    out.packageJson.dependencies[dep] = version
+                    registerNpmPackage(dep, `required by ${file}`)
                 }
             })
         }
